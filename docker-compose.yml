@@ -1,0 +1,21 @@
+version: '3.1'
+
+services:
+
+  mongo-dmsn:
+    image: mongo
+    restart: always
+    ports:
+      - 27017:27017
+    volumes:
+      - /Users/telaak/Documents/dmsn-mongo/:/data/db
+
+  backend:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    restart: always
+    ports:
+      - 3000:3000
+    environment:
+      MONGO_ADDRESS: mongo-dmsn
