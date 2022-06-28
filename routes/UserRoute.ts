@@ -4,31 +4,33 @@ import { Document, ObjectId } from "mongoose";
 import { IContact, IMessage, IUser, UserModel } from "../models/User";
 export const UserRoute = express.Router();
 
-export const getUserFromSession = async (req: Request) => {
+export const getUserFromSession = async (req: Request): Promise<Document<IUser>> => {
   try {
     const user = (await UserModel.findById(
       req.session.mongoId
     ).exec()) as unknown as Document<IUser>;
-    const userObject = user.toJSON() as IUser;
-    return [user, userObject];
+    return user;
   } catch (error) {
     throw "Not found";
   }
 };
 
-export const getContactsFromSession = async (req: Request): Promise<[Document<IUser>, IContact[], string[]]> => {
+export const getContactsFromSession = async (req: Request): Promise<[Document<IUser>, Document<IContact>]> => {
   try {
     const user = (await UserModel.findById(
       req.session.mongoId
     ).exec()) as unknown as Document<IUser>;
-    const userObject = user.toJSON() as IUser;
     const contactDoc = user.get('contacts') as Document<IContact>
-    return [user, userObject.contacts, ['contacts']];
+    return [user, contactDoc];
   } catch (error) {
     throw "Not found";
   }
 };
 
+export const getMessagesFromSession = async (req: Request): Promise<[Document<IUser>, string[]]> => {
+  const user = await getUserFromSession(req)
+  return [user, ['contacts', 'messages']]
+}
 
 UserRoute.get("/current", async (req, res) => {
   try {

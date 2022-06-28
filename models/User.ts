@@ -90,3 +90,5 @@ UserSchema.set("toJSON", {
 export const UserModel = mongoose.model("User", UserSchema);
 
 export const ContactModel = mongoose.model("Contact", ContactSchema)
+
+export const MessageModel = mongoose.model("Message", MessageSchema)
