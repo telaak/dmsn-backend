@@ -1,5 +1,5 @@
-import * as express from 'express'
-import mongoose, { Document, Model } from 'mongoose'
+import * as express from "express";
+import mongoose, { Document, Model } from "mongoose";
 
 export class RouterModel {
   public route: string;
@@ -8,72 +8,87 @@ export class RouterModel {
   public getterFn: Function;
   public pathString: string;
 
-  constructor (
+  constructor(
     route: string,
     model: Model<any>,
     getterFn: Function,
     pathString: string
   ) {
-    this.route = route
-    this.Model = model
-    this.getterFn = getterFn as Function
-    this.pathString = pathString
-    this.initRoutes()
+    this.route = route;
+    this.Model = model;
+    this.getterFn = getterFn as Function;
+    this.pathString = pathString;
+    this.initRoutes();
   }
 
-  private initRoutes () {
+  private async getRootAndTarget(req: express.Request) {
+    const [root, subDocumentKeys]: [Document, string[]] = await this.getterFn(
+      req
+    );
+    const paramArray = Object.values(req.params);
+    let target = root;
+    for (let i = 0; i < subDocumentKeys.length; i++) {
+      target = target.get(subDocumentKeys[i]);
+      if (paramArray[i]) {
+        target = target.id(paramArray[i]);
+      }
+    }
+    return [root, target];
+  }
+
+  private initRoutes() {
     this.router.get(this.route, async (req, res) => {
-      const [rootParent, queriedDocument]: [Document, Document] = await this.getterFn(req)
-      res.send(queriedDocument)
-    })
+      try {
+        const [root, target] = await this.getRootAndTarget(req);
+        target ? res.send(target) : res.status(404).send();
+      } catch (error) {
+        res.sendStatus(error as number);
+      }
+    });
 
     this.router.get(`${this.route}${this.pathString}`, async (req, res) => {
       try {
-        const [rootParent, queriedDocument]: [Document, mongoose.Types.DocumentArray<any>] = await this.getterFn(req)
-        let target;
-        for (let param in req.params) {
-          target = queriedDocument.id(req.params[param])
-        }
-        res.send(target)
+        const [root, target] = await this.getRootAndTarget(req);
+        target ? res.send(target) : res.status(404).send();
       } catch (error) {
-        res.send(error)
+        res.sendStatus(error as number);
       }
-    })
-  
+    });
+
     this.router.post(this.route, async (req, res) => {
       try {
-        const [rootParent, queriedDocument]: [Document, mongoose.Types.DocumentArray<any>] = await this.getterFn(req)
-        const newDoc = new this.Model(req.body)
-        queriedDocument.push(newDoc)
-        await rootParent.save()
-        res.send(newDoc)
+        const [root, target] = await this.getRootAndTarget(req);
+        const targetArray =
+          target as unknown as mongoose.Types.DocumentArray<any>;
+        const newDocument = new this.Model(req.body);
+        targetArray.push(newDocument);
+        await root.save();
+        res.send(newDocument);
       } catch (error) {
-        res.send(error)
+        res.sendStatus(error as number);
       }
-    })
-  
+    });
+
     this.router.delete(`${this.route}:id`, async (req, res) => {
       try {
-        const [rootParent, queriedDocument]: [Document, mongoose.Types.DocumentArray<any>] = await this.getterFn(req)
-        const target = queriedDocument.id(req.params.id) as mongoose.Types.Subdocument
-        await target.remove()
-        await rootParent.save()
-        res.send(target)
+        const [root, target] = await this.getRootAndTarget(req);
+        await target.remove();
+        await root.save();
+        res.send(target);
       } catch (error) {
-        res.send(error)
+        res.sendStatus(error as number);
       }
-    })
+    });
 
     this.router.patch(`${this.route}:id`, async (req, res) => {
       try {
-        const [rootParent, queriedDocument]: [Document, mongoose.Types.DocumentArray<any>] = await this.getterFn(req)
-        const target = queriedDocument.id(req.params.id) as mongoose.Types.Subdocument
-        target.set(req.body)
-        await rootParent.save()
-        res.send(target)
+        const [root, target] = await this.getRootAndTarget(req);
+        target.set(req.body);
+        await root.save();
+        res.send(target);
       } catch (error) {
-        res.send(error)
+        res.sendStatus(error as number);
       }
-    })
+    });
   }
 }

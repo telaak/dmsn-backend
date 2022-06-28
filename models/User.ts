@@ -3,48 +3,78 @@ import * as bcrypt from "bcryptjs";
 const { Schema } = mongoose;
 
 export interface IMessage {
-    duration: number
-    content: string
+  duration: number;
+  content: string;
 }
 
 export interface IContact {
-    name: String,
-    email: String,
-    phoneNumber: String,
-    smsEnabled: Boolean,
-    emailEnabled: Boolean,
-    messages: IMessage[]
-    _id?: mongoose.ObjectId
+  name: String;
+  email: String;
+  phoneNumber: String;
+  smsEnabled: Boolean;
+  emailEnabled: Boolean;
+  messages: IMessage[];
+  _id?: mongoose.ObjectId;
 }
 
 export interface IUser {
-    username: string
-    password: string
-    contacts: IContact[]
-    lastPing: Date
-    comparePassword: Function
-    _id?: mongoose.ObjectId
+  username: string;
+  password: string;
+  contacts: IContact[];
+  lastPing: Date;
+  comparePassword: Function;
+  _id?: mongoose.ObjectId;
 }
 
 export const MessageSchema = new Schema<IMessage>({
-    duration: Number,
-    content: String
-})
+  duration: {
+    type: Number,
+    required: true,
+  },
+  content: {
+    type: String,
+    required: true,
+  },
+});
 
 export const ContactSchema = new Schema<IContact>({
-    name: String,
-    email: String,
-    phoneNumber: String,
-    smsEnabled: Boolean,
-    emailEnabled: Boolean,
-    messages: [MessageSchema]
-})
+  name: {
+    type: String,
+    required: true,
+  },
+  email: {
+    type: String,
+    required: false,
+  },
+  phoneNumber: {
+    type: String,
+    required: false,
+  },
+  smsEnabled: {
+    type: Boolean,
+    required: true,
+  },
+  emailEnabled: {
+    type: Boolean,
+    required: true,
+  },
+  messages: [MessageSchema],
+});
 
 export const UserSchema = new Schema({
-  username: String,
-  password: String,
-  lastPing: Date,
-  contacts: [ContactSchema]
+  username: {
+    type: String,
+    required: true,
+  },
+  password: {
+    type: String,
+    required: true,
+  },
+  lastPing: {
+    type: Date,
+    default: Date.now,
+  },
+  contacts: [ContactSchema],
 });
 
 UserSchema.pre("save", function (next) {
@@ -89,6 +119,6 @@ UserSchema.set("toJSON", {
 
 export const UserModel = mongoose.model("User", UserSchema);
 
-export const ContactModel = mongoose.model("Contact", ContactSchema)
+export const ContactModel = mongoose.model("Contact", ContactSchema);
 
-export const MessageModel = mongoose.model("Message", MessageSchema)
+export const MessageModel = mongoose.model("Message", MessageSchema);

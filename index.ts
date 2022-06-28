@@ -35,7 +35,7 @@ app.listen(port, () => {
 
 app.use(
   session({
-    secret: 'secret',// process.env.COOKIE_SECRET,
+    secret: process.env.COOKIE_SECRET as string,
     cookie: {
       maxAge: 1000 * 60 * 60,
       httpOnly: true,
@@ -52,21 +52,7 @@ app.use(
 )
 
 const ContactRouter = new RouterModel('/', ContactModel, getContactsFromSession, ':contactId')
-const MessageRouter = new RouterModel('/:contactId/message/', MessageModel, getContactsFromSession, ':messageId')
-
-
-app.get('/test/:id1/', async (req, res) => {
-  const [user, subDocumentKeys] = await getMessagesFromSession(req)
-  const paramArray = Object.values(req.params)
-  let target = user
-  for (let i = 0; i < paramArray.length; i++) {
-    target = target.get(subDocumentKeys[i])
-    target = target.id(paramArray[i])
-  }
-  console.log(req.params)
-  res.send(target)
-})
-
+const MessageRouter = new RouterModel('/:contactId/message/', MessageModel, getMessagesFromSession, ':messageId')
 
 app.use('/api/user', UserRoute)
 app.use('/api/contact', ContactRouter.router)
