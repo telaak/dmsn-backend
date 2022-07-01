@@ -5,6 +5,7 @@ const { Schema } = mongoose;
 export interface IMessage {
   duration: number;
   content: string;
+  _id?: mongoose.ObjectId
 }
 
 export interface IContact {
@@ -14,6 +15,7 @@ export interface IContact {
   smsEnabled: Boolean;
   emailEnabled: Boolean;
   messages: IMessage[];
+  pushToken: String;
   _id?: mongoose.ObjectId;
 }
 
@@ -23,6 +25,8 @@ export interface IUser {
   contacts: IContact[];
   lastPing: Date;
   comparePassword: Function;
+  ping: Function;
+  setPushToken: Function;
   _id?: mongoose.ObjectId;
 }
 
@@ -74,6 +78,10 @@ export const UserSchema = new Schema({
     type: Date,
     default: Date.now,
   },
+  pushToken: {
+      type: String,
+      required: false
+  },
   contacts: [ContactSchema],
 });
 
@@ -110,6 +118,16 @@ UserSchema.methods.comparePassword = function (
     cb(null, isMatch);
   });
 };
+
+UserSchema.methods.ping = async function() {
+    this.lastPing = Date.now()
+    await this.save()
+}
+
+UserSchema.methods.setPushToken = async function(newPushToken: string) {
+    this.pushToken = newPushToken
+    await this.save()
+}
 
 UserSchema.set("toJSON", {
   transform: function (doc: mongoose.Document<IUser>, ret: Partial<IUser>) {
