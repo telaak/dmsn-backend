@@ -2,15 +2,22 @@ import * as schedule from "node-schedule";
 import * as dayjs from "dayjs";
 import * as relativeTime from "dayjs/plugin/relativeTime";
 import * as duration from "dayjs/plugin/duration";
-import { IContact, ILocation, IUser } from "../models/User";
+import { IContact, ILocation, IUser, UserModel } from "../models/User";
 import { sendMail } from "./email";
 import { sendSMS } from "./sms";
 import { connect } from "mongoose";
+import "dotenv/config";
 dayjs.extend(relativeTime);
 dayjs.extend(duration);
 
-connect(`mongodb://${process.env.MONGO_ADDRESS}:27017/dmsn`)
-
+connect(`mongodb://${process.env.MONGO_ADDRESS}:27017/dmsn`).then(() => {
+  const setupTimers = UserModel.find({}).then((users) => {
+    users.forEach((user) => {
+      const userData = user as unknown as IUser;
+      updateTimers(userData);
+    });
+  });
+});
 
 let jobsObject = {};
 
@@ -46,7 +53,7 @@ export const updateTimers = (updatedUser: IUser) => {
         };
 
         if (timedMessage.smsEnabled) {
-            sendSMS(timedMessage)
+          sendSMS(timedMessage);
         }
         if (timedMessage.emailEnabled) {
           sendMail(timedMessage);
