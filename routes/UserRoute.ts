@@ -55,6 +55,7 @@ UserRoute.post('/pushToken', async (req, res) => {
 
 UserRoute.get("/current", async (req, res) => {
   try {
+    console.log(`current, id:${req.session.id} mongoid: ${req.session.mongoId}`)
     const user = await getUserFromSession(req);
     res.send(user);
   } catch (error) {
@@ -78,6 +79,7 @@ UserRoute.post("/login", async (req: Request, res: Response) => {
           }
           if (isMatch) {
             req.session.mongoId = user._id as ObjectId;
+            console.log(`logged in, id:${req.session.id} mongoid: ${req.session.mongoId}`)
           } else {
             req.session.destroy((err) => {});
             return res.sendStatus(401)

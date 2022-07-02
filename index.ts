@@ -11,11 +11,12 @@ const MongoDBStore = require('connect-mongodb-session')(session)
 declare module 'express-session' {
   interface Session {
     mongoId: ObjectId;
+    test: String;
   }
 }
 
 const app = express()
-app.set('trust proxy', 1);
+
 const port = 3000
 
 connect(`mongodb://${process.env.MONGO_ADDRESS}:27017/dmsn`)
@@ -28,7 +29,7 @@ app.use(
   })
 )
 app.use(express.urlencoded({ extended: true }))
-
+// app.set('trust proxy', 1)
 app.listen(port, () => {
   console.log(`Running on port ${port}`)
 })
@@ -39,7 +40,8 @@ app.use(
     cookie: {
       maxAge: 1000 * 60 * 60,
       httpOnly: true,
-      domain: process.env.DOMAIN
+      domain: process.env.DOMAIN,
+  //    secure: true
     },
     resave: true,
     saveUninitialized: false,
@@ -55,5 +57,5 @@ const ContactRouter = new RouterModel('/', ContactModel, getContactsFromSession,
 const MessageRouter = new RouterModel('/:contactId/message/', MessageModel, getMessagesFromSession, ':messageId')
 
 app.use('/api/user', UserRoute)
-app.use('/api/contact', ContactRouter.router)
-app.use('/api/contact', MessageRouter.router)
+app.use('/api/user/contact', ContactRouter.router)
+app.use('/api/user/contact', MessageRouter.router)

@@ -85,7 +85,7 @@ export class RouterModel {
         const [root, target] = await this.getRootAndTarget(req);
         target.set(req.body);
         await root.save();
-        res.send(target);
+        res.send(root);
       } catch (error) {
         res.sendStatus(error as number);
       }
