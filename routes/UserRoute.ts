@@ -1,7 +1,20 @@
+import * as dayjs from "dayjs";
+import { Duration } from "dayjs/plugin/duration";
 import * as express from "express";
 import { Request, Response } from "express";
 import { Document, ObjectId } from "mongoose";
-import { IContact, ILocation, IMessage, IUser, UserModel } from "../models/User";
+import { scheduleJob } from "node-schedule";
+import {
+  IContact,
+  ILocation,
+  IMessage,
+  IUser,
+  UserModel,
+} from "../models/User";
+import * as relativeTime from "dayjs/plugin/relativeTime";
+import * as duration from "dayjs/plugin/duration";
+dayjs.extend(relativeTime);
+dayjs.extend(duration);
 export const UserRoute = express.Router();
 
 export const getUserFromSession = async (
@@ -42,7 +55,7 @@ UserRoute.post("/ping", async (req, res) => {
     await user.ping();
     res.send(user.lastPing);
   } catch (error) {
-    console.log(error)
+    console.log(error);
     res.sendStatus(401);
   }
 });

@@ -73,6 +73,7 @@ export class RouterModel {
         await root.save();
         res.send(root);
       } catch (error) {
+        console.log(error)
         if (typeof error === "number") {
           res.sendStatus(error as number);
         } else {
@@ -82,12 +83,14 @@ export class RouterModel {
     });
 
     this.router.delete(`${this.route}:id`, async (req, res) => {
+      console.log('removing')
       try {
         const [root, target] = await this.getRootAndTarget(req);
         await target.remove();
         await root.save();
         res.send(root);
       } catch (error) {
+        console.log(error)
         if (typeof error === "number") {
           res.sendStatus(error as number);
         } else {

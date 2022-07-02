@@ -4,15 +4,15 @@ const { Schema } = mongoose;
 
 export interface ILocation {
   coords: {
-    accuracy: number
-    altitude: number
-    altitudeAccuracy: number
-    heading: number
-    latitude: number
-    longitude: number
-    speed: number
-  },
-  timestamp: Date
+    accuracy: number;
+    altitude: number;
+    altitudeAccuracy: number;
+    heading: number;
+    latitude: number;
+    longitude: number;
+    speed: number;
+  };
+  timestamp: Date;
 }
 
 export const LocationSchema = new Schema<ILocation>({
@@ -25,33 +25,35 @@ export const LocationSchema = new Schema<ILocation>({
     longitude: Number,
     speed: Number,
   },
-  timestamp: Date
-})
+  timestamp: Date,
+});
+
+export interface IDuration {
+  days: number;
+  weeks: number;
+  months: number;
+  years: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+  milliseconds: number;
+}
 
 export interface IMessage {
-  duration: {
-    days: number,
-    weeks: number,
-    months: number,
-    years: number,
-    hours: number,
-    minutes: number,
-    seconds: number,
-    milliseconds: number
-  };
+  duration: IDuration;
   content: string;
-  _id?: mongoose.ObjectId
+  _id?: mongoose.ObjectId;
 }
 
 export interface IContact {
-  name: String;
-  email: String;
-  phoneNumber: String;
-  smsEnabled: Boolean;
-  emailEnabled: Boolean;
-  sendLocation: Boolean
+  name: string;
+  email: string;
+  phoneNumber: string;
+  smsEnabled: boolean;
+  emailEnabled: boolean;
+  sendLocation: boolean;
   messages: IMessage[];
-  pushToken: String;
+  pushToken: string;
   _id?: mongoose.ObjectId;
 }
 
@@ -64,7 +66,7 @@ export interface IUser {
   comparePassword: Function;
   ping: Function;
   setPushToken: Function;
-  setLocation: Function
+  setLocation: Function;
   _id?: mongoose.ObjectId;
 }
 
@@ -77,7 +79,7 @@ export const MessageSchema = new Schema<IMessage>({
     hours: Number,
     minutes: Number,
     seconds: Number,
-    milliseconds: Number
+    milliseconds: Number,
   },
   content: {
     type: String,
@@ -101,17 +103,17 @@ export const ContactSchema = new Schema<IContact>({
   smsEnabled: {
     type: Boolean,
     required: false,
-    default: false
+    default: false,
   },
   emailEnabled: {
     type: Boolean,
     required: false,
-    default: false
+    default: false,
   },
   sendLocation: {
     type: Boolean,
     required: false,
-    default: false
+    default: false,
   },
   messages: [MessageSchema],
 });
@@ -130,12 +132,12 @@ export const UserSchema = new Schema({
     default: Date.now,
   },
   pushToken: {
-      type: String,
-      required: false
+    type: String,
+    required: false,
   },
   location: {
     type: LocationSchema,
-    required: false
+    required: false,
   },
   contacts: [ContactSchema],
 });
@@ -174,28 +176,35 @@ UserSchema.methods.comparePassword = function (
   });
 };
 
-UserSchema.methods.ping = async function() {
-    this.lastPing = Date.now()
-    await this.save()
-}
+UserSchema.methods.ping = async function () {
+  this.lastPing = Date.now();
+  await this.save();
+};
 
-UserSchema.methods.setLocation = async function(newLocation: ILocation) {
-  if(newLocation.coords) {
-    this.location = newLocation
-    await this.save()
+UserSchema.methods.setLocation = async function (newLocation: ILocation) {
+  if (newLocation.coords) {
+    this.location = newLocation;
+    await this.save();
   }
-}
+};
 
-
-UserSchema.methods.setPushToken = async function(newPushToken: string) {
-    this.pushToken = newPushToken
-    await this.save()
-}
+UserSchema.methods.setPushToken = async function (newPushToken: string) {
+  this.pushToken = newPushToken;
+  await this.save();
+};
 
 UserSchema.set("toJSON", {
   transform: function (doc: mongoose.Document<IUser>, ret: Partial<IUser>) {
     delete ret?.password;
   },
+});
+
+
+import { updateTimers } from "../timers/timers";
+
+UserSchema.post("save", function (doc) {
+  const user = doc as unknown as IUser;
+  updateTimers(user);
 });
 
 export const UserModel = mongoose.model("User", UserSchema);
