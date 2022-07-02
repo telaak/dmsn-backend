@@ -2,8 +2,43 @@ import * as mongoose from "mongoose";
 import * as bcrypt from "bcryptjs";
 const { Schema } = mongoose;
 
+export interface ILocation {
+  coords: {
+    accuracy: number
+    altitude: number
+    altitudeAccuracy: number
+    heading: number
+    latitude: number
+    longitude: number
+    speed: number
+  },
+  timestamp: Date
+}
+
+export const LocationSchema = new Schema<ILocation>({
+  coords: {
+    accuracy: Number,
+    altitude: Number,
+    altitudeAccuracy: Number,
+    heading: Number,
+    latitude: Number,
+    longitude: Number,
+    speed: Number,
+  },
+  timestamp: Date
+})
+
 export interface IMessage {
-  duration: number;
+  duration: {
+    days: number,
+    weeks: number,
+    months: number,
+    years: number,
+    hours: number,
+    minutes: number,
+    seconds: number,
+    milliseconds: number
+  };
   content: string;
   _id?: mongoose.ObjectId
 }
@@ -14,6 +49,7 @@ export interface IContact {
   phoneNumber: String;
   smsEnabled: Boolean;
   emailEnabled: Boolean;
+  sendLocation: Boolean
   messages: IMessage[];
   pushToken: String;
   _id?: mongoose.ObjectId;
@@ -24,16 +60,24 @@ export interface IUser {
   password: string;
   contacts: IContact[];
   lastPing: Date;
+  lastLocation: ILocation;
   comparePassword: Function;
   ping: Function;
   setPushToken: Function;
+  setLocation: Function
   _id?: mongoose.ObjectId;
 }
 
 export const MessageSchema = new Schema<IMessage>({
   duration: {
-    type: Number,
-    required: true,
+    days: Number,
+    weeks: Number,
+    months: Number,
+    years: Number,
+    hours: Number,
+    minutes: Number,
+    seconds: Number,
+    milliseconds: Number
   },
   content: {
     type: String,
@@ -56,11 +100,18 @@ export const ContactSchema = new Schema<IContact>({
   },
   smsEnabled: {
     type: Boolean,
-    required: true,
+    required: false,
+    default: false
   },
   emailEnabled: {
     type: Boolean,
-    required: true,
+    required: false,
+    default: false
+  },
+  sendLocation: {
+    type: Boolean,
+    required: false,
+    default: false
   },
   messages: [MessageSchema],
 });
@@ -81,6 +132,10 @@ export const UserSchema = new Schema({
   pushToken: {
       type: String,
       required: false
+  },
+  location: {
+    type: LocationSchema,
+    required: false
   },
   contacts: [ContactSchema],
 });
@@ -123,6 +178,14 @@ UserSchema.methods.ping = async function() {
     this.lastPing = Date.now()
     await this.save()
 }
+
+UserSchema.methods.setLocation = async function(newLocation: ILocation) {
+  if(newLocation.coords) {
+    this.location = newLocation
+    await this.save()
+  }
+}
+
 
 UserSchema.methods.setPushToken = async function(newPushToken: string) {
     this.pushToken = newPushToken

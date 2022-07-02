@@ -1,7 +1,7 @@
 import * as express from "express";
 import { Request, Response } from "express";
 import { Document, ObjectId } from "mongoose";
-import { IContact, IMessage, IUser, UserModel } from "../models/User";
+import { IContact, ILocation, IMessage, IUser, UserModel } from "../models/User";
 export const UserRoute = express.Router();
 
 export const getUserFromSession = async (
@@ -32,34 +32,41 @@ export const getMessagesFromSession = async (
   return [user, ["contacts", "messages"]];
 };
 
-UserRoute.get("/ping", async (req, res) => {
+UserRoute.post("/ping", async (req, res) => {
   try {
-    const user = await getUserFromSession(req) as unknown as IUser;
+    const user = (await getUserFromSession(req)) as unknown as IUser;
+    const newLocation = req.body as ILocation;
+    if (newLocation) {
+      await user.setLocation(newLocation);
+    }
     await user.ping();
-    res.send(user.lastPing)
+    res.send(user.lastPing);
   } catch (error) {
-    res.sendStatus(401)
+    console.log(error)
+    res.sendStatus(401);
   }
 });
 
-UserRoute.post('/pushToken', async (req, res) => {
+UserRoute.post("/pushToken", async (req, res) => {
   try {
-    const user = await getUserFromSession(req) as unknown as IUser;
-    const newPushToken = req.body.pushToken as string
-    await user.setPushToken(newPushToken)
-    res.send(user)
+    const user = (await getUserFromSession(req)) as unknown as IUser;
+    const newPushToken = req.body.pushToken as string;
+    await user.setPushToken(newPushToken);
+    res.send(user);
   } catch (error) {
-    res.sendStatus(500)
+    res.sendStatus(500);
   }
-})
+});
 
 UserRoute.get("/current", async (req, res) => {
   try {
-    console.log(`current, id:${req.session.id} mongoid: ${req.session.mongoId}`)
+    console.log(
+      `current, id:${req.session.id} mongoid: ${req.session.mongoId}`
+    );
     const user = await getUserFromSession(req);
     res.send(user);
   } catch (error) {
-    res.sendStatus(401)
+    res.sendStatus(401);
   }
 });
 
@@ -68,21 +75,23 @@ UserRoute.post("/login", async (req: Request, res: Response) => {
     { username: req.body.username },
     function (err: Error, user: IUser) {
       if (err || !user) {
-        return res.sendStatus(401)
+        return res.sendStatus(401);
       }
 
       user.comparePassword(
         req.body.password,
         function (err: Error, isMatch: boolean) {
           if (err) {
-            return res.sendStatus(401)
+            return res.sendStatus(401);
           }
           if (isMatch) {
             req.session.mongoId = user._id as ObjectId;
-            console.log(`logged in, id:${req.session.id} mongoid: ${req.session.mongoId}`)
+            console.log(
+              `logged in, id:${req.session.id} mongoid: ${req.session.mongoId}`
+            );
           } else {
             req.session.destroy((err) => {});
-            return res.sendStatus(401)
+            return res.sendStatus(401);
           }
           res.send(user);
         }
@@ -93,7 +102,7 @@ UserRoute.post("/login", async (req: Request, res: Response) => {
 
 UserRoute.get("/logout", (req, res) => {
   req.session.destroy((err) => {
-    if (err) res.sendStatus(500)
+    if (err) res.sendStatus(500);
     res.status(200).send();
   });
 });

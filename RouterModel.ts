@@ -42,7 +42,11 @@ export class RouterModel {
         const [root, target] = await this.getRootAndTarget(req);
         target ? res.send(target) : res.status(404).send();
       } catch (error) {
-        res.sendStatus(error as number);
+        if (typeof error === "number") {
+          res.sendStatus(error as number);
+        } else {
+          res.sendStatus(500);
+        }
       }
     });
 
@@ -51,7 +55,11 @@ export class RouterModel {
         const [root, target] = await this.getRootAndTarget(req);
         target ? res.send(target) : res.status(404).send();
       } catch (error) {
-        res.sendStatus(error as number);
+        if (typeof error === "number") {
+          res.sendStatus(error as number);
+        } else {
+          res.sendStatus(500);
+        }
       }
     });
 
@@ -63,9 +71,13 @@ export class RouterModel {
         const newDocument = new this.Model(req.body);
         targetArray.push(newDocument);
         await root.save();
-        res.send(newDocument);
+        res.send(root);
       } catch (error) {
-        res.sendStatus(error as number);
+        if (typeof error === "number") {
+          res.sendStatus(error as number);
+        } else {
+          res.sendStatus(500);
+        }
       }
     });
 
@@ -74,9 +86,13 @@ export class RouterModel {
         const [root, target] = await this.getRootAndTarget(req);
         await target.remove();
         await root.save();
-        res.send(target);
+        res.send(root);
       } catch (error) {
-        res.sendStatus(error as number);
+        if (typeof error === "number") {
+          res.sendStatus(error as number);
+        } else {
+          res.sendStatus(500);
+        }
       }
     });
 
@@ -87,7 +103,11 @@ export class RouterModel {
         await root.save();
         res.send(root);
       } catch (error) {
-        res.sendStatus(error as number);
+        if (typeof error === "number") {
+          res.sendStatus(error as number);
+        } else {
+          res.sendStatus(500);
+        }
       }
     });
   }

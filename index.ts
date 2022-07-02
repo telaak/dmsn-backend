@@ -20,7 +20,7 @@ const app = express()
 const port = 3000
 
 connect(`mongodb://${process.env.MONGO_ADDRESS}:27017/dmsn`)
-
+app.set('trust proxy', 1)
 app.use(express.json())
 app.use(
   cors({
