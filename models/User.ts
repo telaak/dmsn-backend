@@ -2,6 +2,37 @@ import * as mongoose from "mongoose";
 import * as bcrypt from "bcryptjs";
 const { Schema } = mongoose;
 
+export interface IUserSettings {
+  email: string
+  phoneNumber: string
+  enablePushNotifications: boolean
+  enableEmailNotifications: boolean
+  enableSMSNotifications: boolean
+}
+
+export const UserSettingsSchema = new Schema<IUserSettings>({
+  email: {
+    type: String,
+    required: false,
+  },
+  phoneNumber: {
+    type: String,
+    required: false
+  },
+  enablePushNotifications: {
+    type: Boolean,
+    required: false
+  },
+  enableEmailNotifications: {
+    type: Boolean,
+    required: false
+  },
+  enableSMSNotifications: {
+    type: Boolean,
+    required: false
+  }
+})
+
 export interface ILocation {
   coords: {
     accuracy: number;
@@ -63,6 +94,8 @@ export interface IUser {
   contacts: IContact[];
   lastPing: Date;
   lastLocation: ILocation;
+  pushToken: string;
+  settings: IUserSettings
   comparePassword: Function;
   ping: Function;
   setPushToken: Function;
@@ -139,6 +172,7 @@ export const UserSchema = new Schema({
     type: LocationSchema,
     required: false,
   },
+  settings: UserSettingsSchema,
   contacts: [ContactSchema],
 });
 
@@ -207,8 +241,11 @@ UserSchema.post("save", function (doc) {
   updateTimers(user);
 });
 
+export const UserSettingsModel = mongoose.model('UserSettings', UserSettingsSchema)
+
 export const UserModel = mongoose.model("User", UserSchema);
 
 export const ContactModel = mongoose.model("Contact", ContactSchema);
 
 export const MessageModel = mongoose.model("Message", MessageSchema);
+

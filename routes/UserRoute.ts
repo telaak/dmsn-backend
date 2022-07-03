@@ -9,6 +9,7 @@ import {
   ILocation,
   IMessage,
   IUser,
+  IUserSettings,
   UserModel,
 } from "../models/User";
 import * as relativeTime from "dayjs/plugin/relativeTime";
@@ -55,8 +56,29 @@ UserRoute.post("/ping", async (req, res) => {
     await user.ping();
     res.send(user.lastPing);
   } catch (error) {
+    if (typeof error === "number") {
+      res.sendStatus(error as number);
+    } else {
+      res.sendStatus(500);
+    }
+  }
+});
+
+UserRoute.patch("/settings", async (req, res) => {
+  try {
+    const user = await getUserFromSession(req);
+    const newSettings: Partial<IUserSettings> = req.body;
+    // @ts-ignore:next-line
+    user.settings = newSettings;
+    await user.save();
+    res.send(user);
+  } catch (error) {
     console.log(error);
-    res.sendStatus(401);
+    if (typeof error === "number") {
+      res.sendStatus(error as number);
+    } else {
+      res.sendStatus(500);
+    }
   }
 });
 
@@ -64,10 +86,15 @@ UserRoute.post("/pushToken", async (req, res) => {
   try {
     const user = (await getUserFromSession(req)) as unknown as IUser;
     const newPushToken = req.body.pushToken as string;
+    console.log(newPushToken);
     await user.setPushToken(newPushToken);
     res.send(user);
   } catch (error) {
-    res.sendStatus(500);
+    if (typeof error === "number") {
+      res.sendStatus(error as number);
+    } else {
+      res.sendStatus(500);
+    }
   }
 });
 
@@ -79,7 +106,11 @@ UserRoute.get("/current", async (req, res) => {
     const user = await getUserFromSession(req);
     res.send(user);
   } catch (error) {
-    res.sendStatus(401);
+    if (typeof error === "number") {
+      res.sendStatus(error as number);
+    } else {
+      res.sendStatus(500);
+    }
   }
 });
 

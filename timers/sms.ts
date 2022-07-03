@@ -12,16 +12,21 @@ let options = {
 
 modem.open("/dev/tty.usbserial-2110", options);
 
-modem.on('open', data => {
-    modem.initializeModem()
-})
+modem.on("open", (data) => {
+  modem.initializeModem();
+});
 
 export const sendSMS = (timedMessage: ITimedMessage) => {
   console.log(timedMessage.phoneNumber);
   try {
-    modem.sendSMS(timedMessage.phoneNumber, timedMessage.content, false, (cb: any) => {
-      console.log(cb);
-    });
+    modem.sendSMS(
+      timedMessage.phoneNumber,
+      timedMessage.content,
+      false,
+      (cb: any) => {
+        console.log(cb);
+      }
+    );
   } catch (error) {
     console.log(error);
   }
