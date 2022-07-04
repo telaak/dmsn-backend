@@ -3,35 +3,44 @@ import * as bcrypt from "bcryptjs";
 const { Schema } = mongoose;
 
 export interface IUserSettings {
-  email: string
-  phoneNumber: string
-  enablePushNotifications: boolean
-  enableEmailNotifications: boolean
-  enableSMSNotifications: boolean
+  email: string;
+  phoneNumber: string;
+  enableDMS: boolean;
+  enablePushNotifications: boolean;
+  enableEmailNotifications: boolean;
+  enableSMSNotifications: boolean;
 }
 
 export const UserSettingsSchema = new Schema<IUserSettings>({
   email: {
     type: String,
     required: false,
+    unique: true,
   },
   phoneNumber: {
     type: String,
-    required: false
+    required: false,
+    unique: true,
+  },
+  enableDMS: {
+    type: Boolean,
+    required: false,
+    default: true,
   },
   enablePushNotifications: {
     type: Boolean,
-    required: false
+    required: false,
+    default: true,
   },
   enableEmailNotifications: {
     type: Boolean,
-    required: false
+    required: false,
   },
   enableSMSNotifications: {
     type: Boolean,
-    required: false
-  }
-})
+    required: false,
+  },
+});
 
 export interface ILocation {
   coords: {
@@ -93,9 +102,9 @@ export interface IUser {
   password: string;
   contacts: IContact[];
   lastPing: Date;
-  lastLocation: ILocation;
+  location: ILocation;
   pushToken: string;
-  settings: IUserSettings
+  settings: IUserSettings;
   comparePassword: Function;
   ping: Function;
   setPushToken: Function;
@@ -155,6 +164,7 @@ export const UserSchema = new Schema({
   username: {
     type: String,
     required: true,
+    unique: true,
   },
   password: {
     type: String,
@@ -233,19 +243,27 @@ UserSchema.set("toJSON", {
   },
 });
 
-
 import { updateTimers } from "../timers/timers";
 
-UserSchema.post("save", function (doc) {
-  const user = doc as unknown as IUser;
-  updateTimers(user);
+UserSchema.pre("save", function (next) {
+  const user = this as unknown as IUser;
+  if (
+    this.isModified("settings") ||
+    this.isModified("contacts") ||
+    this.isModified("lastPing")
+  ) {
+    updateTimers(user);
+  }
+  next();
 });
 
-export const UserSettingsModel = mongoose.model('UserSettings', UserSettingsSchema)
+export const UserSettingsModel = mongoose.model(
+  "UserSettings",
+  UserSettingsSchema
+);
 
 export const UserModel = mongoose.model("User", UserSchema);
 
 export const ContactModel = mongoose.model("Contact", ContactSchema);
 
 export const MessageModel = mongoose.model("Message", MessageSchema);
-
