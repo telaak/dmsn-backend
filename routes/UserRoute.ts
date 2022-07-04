@@ -69,7 +69,7 @@ UserRoute.patch("/settings", async (req, res) => {
     const user = await getUserFromSession(req);
     const newSettings: Partial<IUserSettings> = req.body;
     // @ts-ignore:next-line
-    user.settings = newSettings;
+    user.settings.set(newSettings);
     await user.save();
     res.send(user);
   } catch (error) {
