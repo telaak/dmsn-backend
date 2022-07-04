@@ -27,7 +27,7 @@ const notificationOffsets = [
     seconds: 5,
   }),
   dayjs.duration({
-    seconds: 10,
+    minutes: 5,
   }),
   dayjs.duration({
     hours: 1,
@@ -58,27 +58,24 @@ export interface ITimedMessage {
   location: ILocation;
 }
 
-export const updateTimers = async (updatedUser: IUser) => {
+const createTimedMessages = (updatedUser: IUser, jobArray: schedule.Job[]) => {
   const lastPing = updatedUser.lastPing;
   const contacts = updatedUser.contacts as IContact[];
-  const newJobs: schedule.Job[] = [];
-
-  const warningTimes = new Set()
-
+  const warningTimes = new Set<number>();
   for (const contact of contacts) {
     for (const message of contact.messages) {
       const targetDate = dayjs(lastPing)
         .add(dayjs.duration(message.duration))
         .toDate();
 
-      warningTimes.add(targetDate.getTime())
+      warningTimes.add(targetDate.getTime());
       const newDMSJob = schedule.scheduleJob(targetDate, () => {
         const timedMessage: ITimedMessage = {
           phoneNumber: contact.phoneNumber,
           email: contact.email,
           content: message.content,
           sendLocation: contact.sendLocation,
-          location: updatedUser.lastLocation,
+          location: updatedUser.location,
           smsEnabled: contact.smsEnabled,
           emailEnabled: contact.emailEnabled,
         };
@@ -90,48 +87,71 @@ export const updateTimers = async (updatedUser: IUser) => {
           sendMail(timedMessage);
         }
       });
-      newJobs.push(newDMSJob);
+      jobArray.push(newDMSJob);
     }
   }
-  console.log(warningTimes)
-/*
-  for (const offset of notificationOffsets) {
-    const warningTarget = dayjs(lastPing).subtract(offset);
-    console.log(warningTarget.toDate().toLocaleTimeString())
-    const warningJob = schedule.scheduleJob(
-      dayjs().add(dayjs.duration({seconds: 5})).toDate(),
-      () => {
-        console.log('triggered')
-        if (Expo.isExpoPushToken(updatedUser.pushToken)) {
-          console.log('token ok')
-          const messages = [];
+  return warningTimes;
+};
 
-          messages.push({
-            to: updatedUser.pushToken,
-            body: `Timer expiring ${offset.humanize()}`,
-          });
-          let chunks = expo.chunkPushNotifications(messages);
-          let tickets = [];
+const createWarningNotifications = (
+  warningTimes: Set<number>,
+  updatedUser: IUser,
+  jobArray: schedule.Job[]
+) => {
+  for (const warningTime of Array.from(warningTimes)) {
+    for (const offset of notificationOffsets) {
+      const warningTarget = dayjs(warningTime).subtract(offset);
+      const userSettings = updatedUser.settings;
+      const warningJob = schedule.scheduleJob(warningTarget.toDate(), () => {
+        if (userSettings.enablePushNotifications) {
+          if (Expo.isExpoPushToken(updatedUser.pushToken)) {
+            console.log("token ok");
+            const messages = [];
 
-          for (let chunk of chunks) {
-            try {
-              let ticketChunk = expo.sendPushNotificationsAsync(chunk).then(chunk => {
-                console.log(chunk);
-                tickets.push(...chunk);
-              })
-            } catch (error) {
-              console.error(error);
+            messages.push({
+              to: updatedUser.pushToken,
+              body: `Timer expiring in ${offset.humanize()}`,
+            });
+            let chunks = expo.chunkPushNotifications(messages);
+            let tickets = [];
+
+            for (let chunk of chunks) {
+              try {
+                let ticketChunk = expo
+                  .sendPushNotificationsAsync(chunk)
+                  .then((chunk) => {
+                    console.log(chunk);
+                    tickets.push(...chunk);
+                  });
+              } catch (error) {
+                console.error(error);
+              }
             }
+          } else {
+            console.log("token fail");
           }
-        } else {
-          console.log('token fail')
         }
-      }
-    );
-    console.log(warningJob)
-    newJobs.push(warningJob);
+
+        if (userSettings.enableEmailNotifications) {
+        }
+
+        if (userSettings.enableSMSNotifications) {
+        }
+      });
+      jobArray.push(warningJob);
+    }
   }
-*/
+};
+
+export const updateTimers = async (updatedUser: IUser) => {
+  const newJobs: schedule.Job[] = [];
+
+  if (updatedUser.settings.enableDMS) {
+    console.log("updating timers");
+    const warningTimes = createTimedMessages(updatedUser, newJobs);
+    createWarningNotifications(warningTimes, updatedUser, newJobs);
+  }
+
   const id = updatedUser._id.toString();
   if (jobsObject[id] && jobsObject[id].length) {
     try {
