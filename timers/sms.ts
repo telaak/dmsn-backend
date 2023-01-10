@@ -1,6 +1,7 @@
 import { ITimedMessage } from "./timers";
 import * as serialportgsm from "serialport-gsm";
 import { IUser, UserModel } from "../models/User";
+import "dotenv/config";
 let modem = serialportgsm.Modem();
 let options = {
   enableConcatenation: true,
@@ -10,7 +11,7 @@ let options = {
   logger: console,
 };
 
-modem.open("/dev/tty.usbserial-2110", options);
+modem.open(process.env.GSMTTY, options);
 
 const processSMSPing = async (messageDetails: ISMSDetails) => {
   console.log(messageDetails);
