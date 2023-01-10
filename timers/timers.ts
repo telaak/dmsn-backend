@@ -1,11 +1,11 @@
 import * as schedule from "node-schedule";
-import * as dayjs from "dayjs";
-import * as relativeTime from "dayjs/plugin/relativeTime";
-import * as duration from "dayjs/plugin/duration";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import duration from "dayjs/plugin/duration";
 import { IContact, ILocation, IUser, UserModel } from "../models/User";
 import { sendMail } from "./email";
 import { sendSMS } from "./sms";
-import { connect } from "mongoose";
+import { connect, ObjectId } from "mongoose";
 import { Expo } from "expo-server-sdk";
 import "dotenv/config";
 dayjs.extend(relativeTime);
@@ -46,7 +46,7 @@ const notificationOffsets = [
   }),
 ];
 
-let jobsObject = {};
+let jobsObject = {} as any;
 
 export interface ITimedMessage {
   phoneNumber: string;
@@ -152,11 +152,12 @@ export const updateTimers = async (updatedUser: IUser) => {
     createWarningNotifications(warningTimes, updatedUser, newJobs);
   }
 
-  const id = updatedUser._id.toString();
-  if (jobsObject[id] && jobsObject[id].length) {
+  const id = updatedUser._id as ObjectId
+  const stringId = id.toString() as string;
+  if (jobsObject[stringId] && jobsObject[stringId].length) {
     try {
-      jobsObject[id].forEach((job: schedule.Job) => job.cancel());
+      jobsObject[stringId].forEach((job: schedule.Job) => job.cancel());
     } catch (error) {}
   }
-  jobsObject[id] = newJobs;
+  jobsObject[stringId] = newJobs;
 };

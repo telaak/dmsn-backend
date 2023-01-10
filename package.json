@@ -17,7 +17,7 @@
     "express-session": "^1.17.3",
     "mongoose": "^6.4.1",
     "node-schedule": "^2.1.0",
-    "serialport-gsm": "^3.4.2"
+    "serialport-gsm": "^4.0.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.2",

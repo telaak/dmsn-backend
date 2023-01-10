@@ -1,8 +1,8 @@
-import * as sgMail from "@sendgrid/mail";
+import sgMail from "@sendgrid/mail";
 import { ITimedMessage } from "./timers";
 import "dotenv/config";
-import * as dayjs from "dayjs";
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+import dayjs from "dayjs";
+sgMail.setApiKey(process.env.SENDGRID_API_KEY as string);
 
 export const sendMail = (timedMessage: ITimedMessage) => {
   console.log(timedMessage)

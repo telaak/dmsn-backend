@@ -12,8 +12,8 @@ import {
   IUserSettings,
   UserModel,
 } from "../models/User";
-import * as relativeTime from "dayjs/plugin/relativeTime";
-import * as duration from "dayjs/plugin/duration";
+import relativeTime = require("dayjs/plugin/relativeTime");
+import duration = require("dayjs/plugin/duration");
 dayjs.extend(relativeTime);
 dayjs.extend(duration);
 export const UserRoute = express.Router();

@@ -19,3 +19,9 @@ services:
       - 3000:3000
     environment:
       MONGO_ADDRESS: mongo-dmsn
+      COOKIE_SECRET: taalasmaa
+      DOMAIN: laaksonen.eu
+      SENDGRID_API_KEY: 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
+      GSMTTY: /dev/ttyUSB0
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0

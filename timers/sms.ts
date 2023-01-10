@@ -1,5 +1,5 @@
 import { ITimedMessage } from "./timers";
-import * as serialportgsm from "serialport-gsm";
+const serialportgsm  = require("serialport-gsm");
 import { IUser, UserModel } from "../models/User";
 import "dotenv/config";
 let modem = serialportgsm.Modem();
@@ -9,6 +9,7 @@ let options = {
   incomingSMSIndication: true,
   cnmiCommand: "AT+CNMI=2,1,0,2,1",
   logger: console,
+  baudRate: 9600
 };
 
 modem.open(process.env.GSMTTY, options);
@@ -31,7 +32,7 @@ const processSMSPing = async (messageDetails: ISMSDetails) => {
 modem.on("onNewMessage", async (messageDetails: ISMSDetails) => {
   console.log(messageDetails);
 });
-modem.on("open", (data) => {
+modem.on("open", (data: any) => {
   console.log('open')
   modem.initializeModem(async () => {
     const messages = await modem.getSimInbox();
