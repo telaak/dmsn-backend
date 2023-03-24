@@ -22,4 +22,4 @@ EXPOSE 3000
 
 RUN npm run build
 
-CMD [ "node", "index.js" ]
+CMD [ "node", "dist/index.js" ]

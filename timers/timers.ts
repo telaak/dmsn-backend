@@ -46,8 +46,6 @@ const notificationOffsets = [
   }),
 ];
 
-let jobsObject = {} as any;
-
 export interface ITimedMessage {
   phoneNumber: string;
   email: string;
@@ -133,9 +131,11 @@ const createWarningNotifications = (
         }
 
         if (userSettings.enableEmailNotifications) {
+          // TODO
         }
 
         if (userSettings.enableSMSNotifications) {
+          // TODO
         }
       });
       jobArray.push(warningJob);
@@ -145,19 +145,11 @@ const createWarningNotifications = (
 
 export const updateTimers = async (updatedUser: IUser) => {
   const newJobs: schedule.Job[] = [];
+  await schedule.gracefulShutdown();
 
   if (updatedUser.settings.enableDMS) {
     console.log("updating timers");
     const warningTimes = createTimedMessages(updatedUser, newJobs);
     createWarningNotifications(warningTimes, updatedUser, newJobs);
   }
-
-  const id = updatedUser._id as ObjectId
-  const stringId = id.toString() as string;
-  if (jobsObject[stringId] && jobsObject[stringId].length) {
-    try {
-      jobsObject[stringId].forEach((job: schedule.Job) => job.cancel());
-    } catch (error) {}
-  }
-  jobsObject[stringId] = newJobs;
 };

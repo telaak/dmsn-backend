@@ -31,6 +31,11 @@ const processSMSPing = async (messageDetails: ISMSDetails) => {
 
 modem.on("onNewMessage", async (messageDetails: ISMSDetails) => {
   console.log(messageDetails);
+  try {
+    processSMSPing(messageDetails)
+  } catch (error) {
+    console.error(error)
+  }
 });
 modem.on("open", (data: any) => {
   console.log('open')
