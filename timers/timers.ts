@@ -4,21 +4,12 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import duration from "dayjs/plugin/duration";
 import { IContact, ILocation, IUser, UserModel } from "../models/User";
 import { sendMail } from "./email";
-import { sendSMS } from "./sms";
+// import { sendSMS } from "./sms";
 import { connect, ObjectId } from "mongoose";
 import { Expo } from "expo-server-sdk";
 import "dotenv/config";
 dayjs.extend(relativeTime);
 dayjs.extend(duration);
-
-connect(`mongodb://${process.env.MONGO_ADDRESS}:27017/dmsn`).then(() => {
-  const setupTimers = UserModel.find({}).then((users) => {
-    users.forEach((user) => {
-      const userData = user as unknown as IUser;
-      updateTimers(userData);
-    });
-  });
-});
 
 const expo = new Expo();
 
@@ -56,100 +47,155 @@ export interface ITimedMessage {
   location: ILocation;
 }
 
-const createTimedMessages = (updatedUser: IUser, jobArray: schedule.Job[]) => {
-  const lastPing = updatedUser.lastPing;
-  const contacts = updatedUser.contacts as IContact[];
-  const warningTimes = new Set<number>();
-  for (const contact of contacts) {
-    for (const message of contact.messages) {
-      const targetDate = dayjs(lastPing)
-        .add(dayjs.duration(message.duration))
-        .toDate();
+connect(`mongodb://${process.env.MONGO_ADDRESS}:27017/dmsn`).then(() => {
+  const setupTimers = UserModel.find({}).then((users) => {
+    users.forEach((user) => {
+      const userData = user as unknown as IUser;
+      timerHandlers.push(new TimerHandler(userData));
+    });
+  });
+});
 
-      warningTimes.add(targetDate.getTime());
-      const newDMSJob = schedule.scheduleJob(targetDate, () => {
-        const timedMessage: ITimedMessage = {
-          phoneNumber: contact.phoneNumber,
-          email: contact.email,
-          content: message.content,
-          sendLocation: contact.sendLocation,
-          location: updatedUser.location,
-          smsEnabled: contact.smsEnabled,
-          emailEnabled: contact.emailEnabled,
-        };
+const timerHandlers: TimerHandler[] = [];
 
-        if (timedMessage.smsEnabled) {
-          sendSMS(timedMessage);
-        }
-        if (timedMessage.emailEnabled) {
-          sendMail(timedMessage);
-        }
-      });
-      jobArray.push(newDMSJob);
+class TimerHandler {
+  public jobArray: schedule.Job[] = [];
+  public user: IUser;
+
+  constructor(user: IUser) {
+    this.user = user;
+    this.createTimers();
+  }
+
+  cancelTimers() {
+    console.log(`canceling timers for: ${this.user.username}`);
+    this.jobArray.forEach((j) => {
+      j.cancel();
+    });
+    this.jobArray = [];
+  }
+
+  createTimers() {
+    this.cancelTimers();
+    console.log(`creating timers for ${this.user.username}`);
+    if (this.user.settings.enableDMS) {
+      const warningTimes = this.createTimedMessages();
+      const notifications = this.createWarningNotifications(warningTimes);
     }
   }
-  return warningTimes;
-};
 
-const createWarningNotifications = (
-  warningTimes: Set<number>,
-  updatedUser: IUser,
-  jobArray: schedule.Job[]
-) => {
-  for (const warningTime of Array.from(warningTimes)) {
-    for (const offset of notificationOffsets) {
-      const warningTarget = dayjs(warningTime).subtract(offset);
-      const userSettings = updatedUser.settings;
-      const warningJob = schedule.scheduleJob(warningTarget.toDate(), () => {
-        if (userSettings.enablePushNotifications) {
-          if (Expo.isExpoPushToken(updatedUser.pushToken)) {
-            console.log("token ok");
-            const messages = [];
+  createTimedMessages = () => {
+    const lastPing = this.user.lastPing;
+    const contacts = this.user.contacts as IContact[];
+    const warningTimes = new Set<number>();
+    for (const contact of contacts) {
+      if (contact.smsEnabled || contact.emailEnabled) {
+        for (const message of contact.messages) {
+          const targetDate = dayjs(lastPing)
+            .add(dayjs.duration(message.duration))
+            .toDate();
 
-            messages.push({
-              to: updatedUser.pushToken,
-              body: `Timer expiring in ${offset.humanize()}`,
-            });
-            let chunks = expo.chunkPushNotifications(messages);
-            let tickets = [];
+          warningTimes.add(targetDate.getTime());
+          const newDMSJob = schedule.scheduleJob(targetDate, () => {
+            const timedMessage: ITimedMessage = {
+              phoneNumber: contact.phoneNumber,
+              email: contact.email,
+              content: message.content,
+              sendLocation: contact.sendLocation,
+              location: this.user.location,
+              smsEnabled: contact.smsEnabled,
+              emailEnabled: contact.emailEnabled,
+            };
 
-            for (let chunk of chunks) {
-              try {
-                let ticketChunk = expo
-                  .sendPushNotificationsAsync(chunk)
-                  .then((chunk) => {
-                    console.log(chunk);
-                    tickets.push(...chunk);
-                  });
-              } catch (error) {
-                console.error(error);
-              }
+            if (timedMessage.smsEnabled) {
+              sendSMS(timedMessage.phoneNumber, timedMessage.content);
             }
-          } else {
-            console.log("token fail");
-          }
+            if (timedMessage.emailEnabled) {
+              sendMail(timedMessage);
+            }
+          });
+          if (newDMSJob) this.jobArray.push(newDMSJob);
         }
-
-        if (userSettings.enableEmailNotifications) {
-          // TODO
-        }
-
-        if (userSettings.enableSMSNotifications) {
-          // TODO
-        }
-      });
-      jobArray.push(warningJob);
+      }
     }
-  }
-};
+    return warningTimes;
+  };
+
+  createWarningNotifications = (warningTimes: Set<number>) => {
+    for (const warningTime of Array.from(warningTimes)) {
+      for (const offset of notificationOffsets) {
+        const warningTarget = dayjs(warningTime).subtract(offset);
+        const userSettings = this.user.settings;
+        const warningJob = schedule.scheduleJob(warningTarget.toDate(), () => {
+          if (userSettings.enablePushNotifications) {
+            if (Expo.isExpoPushToken(this.user.pushToken)) {
+              console.log("token ok");
+              const messages = [];
+
+              messages.push({
+                to: this.user.pushToken,
+                body: `Timer expiring in ${offset.humanize()}`,
+              });
+              let chunks = expo.chunkPushNotifications(messages);
+              let tickets = [];
+
+              for (let chunk of chunks) {
+                try {
+                  let ticketChunk = expo
+                    .sendPushNotificationsAsync(chunk)
+                    .then((chunk) => {
+                      console.log(chunk);
+                      tickets.push(...chunk);
+                    });
+                } catch (error) {
+                  console.error(error);
+                }
+              }
+            } else {
+              console.log("token fail");
+            }
+          }
+
+          if (userSettings.enableEmailNotifications) {
+            // TODO
+          }
+
+          if (userSettings.enableSMSNotifications) {
+            // TODO
+          }
+        });
+        if (warningJob) this.jobArray.push(warningJob);
+      }
+    }
+  };
+}
 
 export const updateTimers = async (updatedUser: IUser) => {
-  const newJobs: schedule.Job[] = [];
-  await schedule.gracefulShutdown();
-
-  if (updatedUser.settings.enableDMS) {
-    console.log("updating timers");
-    const warningTimes = createTimedMessages(updatedUser, newJobs);
-    createWarningNotifications(warningTimes, updatedUser, newJobs);
+  const updatedUserId = String(updatedUser._id) as unknown as string;
+  const foundHandler = timerHandlers.find((handler) => {
+    const handlerUserId = String(handler.user._id) as unknown as string;
+    return updatedUserId === handlerUserId;
+  });
+  if (foundHandler) {
+    console.log("found");
+    foundHandler.user = updatedUser;
+    foundHandler.createTimers();
   }
 };
+
+async function sendSMS(recipient: string, message: string) {
+  try {
+    await fetch(process.env.SMSAPI as string, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        recipient,
+        message,
+      }),
+      method: "POST",
+    }).then(res => res.text()).then(console.log)
+  } catch (error) {
+    console.error(error);
+  }
+}

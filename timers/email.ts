@@ -18,5 +18,10 @@ export const sendMail = (timedMessage: ITimedMessage) => {
     subject: `DMS notification`,
     text: emailText,
   };
-  sgMail.send(emailMessage);
+  try {
+    sgMail.send(emailMessage);
+    console.log(`sent ${emailMessage}`)
+  } catch (error) {
+    console.error(error)
+  }
 };
